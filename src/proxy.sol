@@ -1,41 +1,28 @@
-// proxy.sol - execute actions atomically through the proxy's identity
+/// SPDX-License-Identifier: AGPL-3.0
 
-// Copyright (C) 2017  DappHub, LLC
-
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-pragma solidity >=0.5.0 <0.6.0;
+pragma solidity 0.6.12;
 
 import "ds-auth/auth.sol";
 import "ds-note/note.sol";
 
+//  proxy.sol - execute actions atomically through the proxy's identity
+
 // DSProxy
-// Allows code execution using a persistant identity This can be very
-// useful to execute a sequence of atomic actions. Since the owner of
-// the proxy can be changed, this allows for dynamic ownership models
-// i.e. a multisig
+// Allows code execution using a persistent identity This can be very
+// useful to execute a sequence of atomic actions.
+
 contract DSProxy is DSAuth, DSNote {
-    DSProxyCache public cache;  // global cache for contracts
+    // global cache for contracts
+    DSProxyCache public cache;  
 
     constructor(address _cacheAddr) public {
         setCache(_cacheAddr);
     }
 
-    function() external payable {
+    receive() external payable {
     }
 
-    // use the proxy to execute calldata _data on contract _code
+    // @note use the proxy to execute calldata _data on contract _code
     function execute(bytes memory _code, bytes memory _data)
         public
         payable
@@ -43,7 +30,7 @@ contract DSProxy is DSAuth, DSNote {
     {
         target = cache.read(_code);
         if (target == address(0)) {
-            // deploy contract & store its address in cache
+            //  @notedeploy contract & store its address in cache
             target = cache.write(_code);
         }
 
@@ -61,8 +48,8 @@ contract DSProxy is DSAuth, DSNote {
 
         // call contract in current context
         assembly {
-            let succeeded := delegatecall(sub(gas, 5000), _target, add(_data, 0x20), mload(_data), 0, 0)
-            let size := returndatasize
+            let succeeded := delegatecall(sub(gas(), 5000), _target, add(_data, 0x20), mload(_data), 0, 0)
+            let size := returndatasize()
 
             response := mload(0x40)
             mstore(0x40, add(response, and(add(add(size, 0x20), 0x1f), not(0x1f))))
@@ -148,3 +135,15 @@ contract DSProxyCache {
         cache[hash] = target;
     }
 }
+
+// Copyright (C) 2017  DappHub, LLC
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
